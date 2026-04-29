@@ -48,6 +48,9 @@ TagManager:
   - name: BG_Mid / Boss
     uniqueID: 424994421
     locked: 0
+  - name: Platform_Layer
+    uniqueID: 2488658385
+    locked: 0
   - name: Player_Layer
     uniqueID: 4039146081
     locked: 0
