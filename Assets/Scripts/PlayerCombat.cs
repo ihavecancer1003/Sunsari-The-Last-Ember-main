@@ -6,7 +6,7 @@ public class PlayerCombat : MonoBehaviour
 {
     [Header("Combat & Parry")]
     public Transform attackPoint;
-    public float attackRange = 0.6f;
+    public float attackRange = 0.8f; // Бага зэрэг томрууллаа
     public LayerMask enemyLayers;
     public int attackDamage = 20;
     public float parryWindow = 0.2f;
@@ -21,14 +21,18 @@ public class PlayerCombat : MonoBehaviour
     public int maxHealth = 100;
     public int currentHealth;
     public Slider healthSlider;
+    public float iFrameDuration = 1f; // Цохиулсны дараах хамгаалалтын хугацаа
+    private bool isInvincible = false;
 
-    [Header("Input Buffering")] //input buffering hiisen
+    [Header("Input Buffering")]
     private float attackBufferTimer;
 
     private PlayerMovement movement;
+    private Rigidbody2D rb;
 
     void Start()
     {
+        rb = GetComponent<Rigidbody2D>();
         movement = GetComponent<PlayerMovement>();
         currentHealth = maxHealth;
 
@@ -41,21 +45,20 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
-        attackBufferTimer -= Time.deltaTime; // buffer timer dooshilno
+        attackBufferTimer -= Time.deltaTime;
 
-        if (Input.GetKeyDown(KeyCode.X)) // attack input avna
+        if (Input.GetKeyDown(KeyCode.X)) 
         {
             attackBufferTimer = 0.12f;
         }
 
-        // attack hiij boloh eshiig shalgana
         if (attackBufferTimer > 0)
         {
-            // ! eniig oorchilj bolno. dashlaj bhdaa attack hiij boldog bolgoj bolno
-            if (movement != null && !movement.isDashing)
+            // DASH-ATTACK: movement.isDashing-ийг эндээс хассан тул Dash хийхдээ цохиж болно
+            if (movement != null)
             {
                 PerformAttack();
-                attackBufferTimer = 0; // buffer hiisnii daraa arilgana
+                attackBufferTimer = 0;
             }
         }
     }
@@ -70,15 +73,28 @@ public class PlayerCombat : MonoBehaviour
         }
 
         StartCoroutine(ActivateParry());
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
-        foreach (Collider2D enemy in hitEnemies)
+
+        // Радиус доторх бүх Collider-ийг олно
+        Collider2D[] hitObjects = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
+        
+        foreach (Collider2D obj in hitObjects)
         {
-            enemy.GetComponent<Enemy>()?.TakeDamage(finalDamage);
+            // Зөвхөн "Enemy" Tag-тай бөгөөд IDamageable интерфейстэй бол цохино
+            if (obj.CompareTag("Enemy"))
+            {
+                IDamageable damageable = obj.GetComponent<IDamageable>();
+                if (damageable != null)
+                {
+                    damageable.TakeDamage(finalDamage);
+                }
+            }
         }
     }
+
     public void TakeDamage(int damage)
     {
-        if (movement.isDashing || isParryActive)
+        // Хамгаалалттай үед (I-Frame) эсвэл Dash хийж байхдаа damage авахгүй
+        if (isInvincible || movement.isDashing || isParryActive)
         {
             if (isParryActive)
             {
@@ -90,13 +106,54 @@ public class PlayerCombat : MonoBehaviour
 
         currentHealth -= damage;
         if (healthSlider != null) healthSlider.value = currentHealth;
-        if (currentHealth <= 0) Die();
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+        else
+        {
+            StartCoroutine(BecomeInvincible());
+            ApplyKnockback();
+        }
     }
+
+    private IEnumerator BecomeInvincible()
+    {
+        isInvincible = true;
+        // Энд чи SpriteRenderer ашиглан Vesper-ийг анивчдаг болгож болно
+        yield return new WaitForSeconds(iFrameDuration);
+        isInvincible = false;
+    }
+
+    private void ApplyKnockback()
+    {
+        // Цохиулсан зүг рүү бага зэрэг шидэгдэх
+        Vector2 knockbackDir = new Vector2(-transform.localScale.x, 0.5f).normalized;
+        rb.linearVelocity = Vector2.zero;
+        rb.AddForce(knockbackDir * 7f, ForceMode2D.Impulse);
+    }
+
     IEnumerator ActivateParry()
     {
         isParryActive = true;
         yield return new WaitForSeconds(parryWindow);
         isParryActive = false;
     }
-    void Die() => gameObject.SetActive(false);
+
+    void Die()
+    {
+        Debug.Log("Vesper үхлээ...");
+        // Хөдөлгөөн зогсоож, объектыг идэвхгүй болгох
+        if (movement != null) movement.enabled = false;
+        gameObject.SetActive(false); 
+    }
+
+    // Scene цонхонд Attack Range-ийг харах (Зөвхөн хөгжүүлэлтийн үед харагдана)
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null) return;
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+    }
 }
