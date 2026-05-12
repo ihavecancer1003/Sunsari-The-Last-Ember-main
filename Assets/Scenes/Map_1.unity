@@ -690,7 +690,7 @@ TilemapCollider2D:
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 8091ef87a446bf14fba0ed8c95d13071, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -92288,13 +92288,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   anim: {fileID: 488702163}
   speed: 8
-  jumpForce: 12
   dashForce: 20
   dashDuration: 0.2
   isDashing: 0
   canDash: 1
   isFacingRight: 1
   extraJumpsValue: 1
+  jumpForce: 12
   groundCheck: {fileID: 1580659358}
   checkRadius: 0.1
   groundLayer:
@@ -92304,6 +92304,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   bufferWindow: 0.12
+  wallJumpForce: 10
+  wallJumpWindow: 0.5
 --- !u!50 &493360722
 Rigidbody2D:
   serializedVersion: 5
@@ -92327,7 +92329,7 @@ Rigidbody2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
