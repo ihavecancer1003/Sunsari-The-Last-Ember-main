@@ -56730,8 +56730,7 @@ MonoBehaviour:
   player: {fileID: 0}
   chaseSpeed: 6
   diveSpeed: 20
-  detectionRange: 10
-  attackRange: 4
+  attackRange: 6.5
   canAttack: 1
   hoverHeight: 2.5
   hoverForce: 15
@@ -56739,6 +56738,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  currentState: 0
 --- !u!1 &1580659357
 GameObject:
   m_ObjectHideFlags: 0
@@ -57059,7 +57059,7 @@ Transform:
   m_GameObject: {fileID: 1976946277}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.65, y: -1.15, z: 0}
+  m_LocalPosition: {x: -1.93, y: -0.47, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

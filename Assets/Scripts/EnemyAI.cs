@@ -5,9 +5,8 @@ public class EnemyAI : MonoBehaviour, IDamageable
 {
     [Header("Movement Stats")]
     public Transform player;
-    public float chaseSpeed = 6f;       // Илүү хурдан хөөх
-    public float diveSpeed = 20f;        // Маш хурдтай шумбах
-    public float detectionRange = 20f;
+    public float chaseSpeed = 8f;       // Илүү хурдан хөөх
+    public float diveSpeed = 35f;        // Маш хурдтай шумбах
     public float attackRange = 6.5f;
     public bool canAttack = true;
 
@@ -16,6 +15,9 @@ public class EnemyAI : MonoBehaviour, IDamageable
     public float hoverForce = 60f;
     public float horizontalOffset = 4f;
     public LayerMask groundLayer;
+
+    public enum EnemyState { Idle, Hovering, Diving, Resting }
+    public EnemyState currentState = EnemyState.Idle;
 
     private Rigidbody2D rb;
     private bool isDiving = false;
@@ -31,17 +33,22 @@ public class EnemyAI : MonoBehaviour, IDamageable
 
     void Update()
     {
-        if (isDiving || player == null) return;
+        // If we are diving or resting, don't run the Chase/Hover logic
+        if (currentState == EnemyState.Diving || currentState == EnemyState.Resting)
+            return;
 
-        float distance = Vector2.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        if (distance < attackRange)
+        if (distanceToPlayer < 18f) // Within range to hover
         {
-            StartCoroutine(AggressiveDive());
-        }
-        else if (distance < detectionRange)
-        {
-            ChasePlayer();
+            currentState = EnemyState.Hovering;
+            ChasePlayer(); // This moves it to the target offset (above/side)
+
+            // Only start the dive if we are close enough to the hover position
+            if (distanceToPlayer < 6.5f && canAttack)
+            {
+                StartCoroutine(PerformDive());
+            }
         }
     }
 
@@ -85,39 +92,48 @@ public class EnemyAI : MonoBehaviour, IDamageable
             transform.localScale = new Vector3(1, 1, 1);  // Зүүн тийш харуулах
     }
 
-    IEnumerator AggressiveDive()
+    IEnumerator PerformDive()
     {
-        isDiving = true;
-        if (!canAttack)
+        float side;
+        if (transform.position.x < player.position.x)
         {
-            if (transform.position.x <= player.position.x + (side * horizontalOffset))
-            {
-                canAttack = true;
-            }
+            side = 2f;
         }
         else
         {
-            isDiving = true;
-            rb.linearVelocity = Vector2.zero;
-
-            // Дайрахын өмнөх цэнэглэлт (Зөвхөн 0.5 секунд хүлээгээд шууд дайрна)
-            yield return new WaitForSeconds(0.5f);
-
-            if (player != null)
-            {
-                Vector2 diveDir = (player.position - transform.position).normalized;
-                rb.linearVelocity = diveDir * diveSpeed;
-            }
-
-            yield return new WaitForSeconds(0.8f);
-
-            yield return new WaitForSeconds(1.2f); // Дайрсны дараах амралт
-            isDiving = false;
-            canAttack = false;
+            side = -2f;
         }
-            ;
+        canAttack = false;
+        isDiving = true;
+        currentState = EnemyState.Diving;
 
-        
+        // 1. Charge up: Stop for a moment to signal the player
+        rb.linearVelocity = Vector2.zero;
+        yield return new WaitForSeconds(0.5f);
+
+        // 2. The Attack
+        if (player != null)
+        {
+            Vector2 targetPos = new Vector2(player.position.x + (side * 1f), player.position.y);
+            Vector2 diveDir = (targetPos - (Vector2)transform.position).normalized;
+            rb.linearVelocity = diveDir * diveSpeed;
+        }
+
+        // 3. Duration of the dive
+        yield return new WaitForSeconds(1.0f);
+
+        // 4. Recovery: Stop and wait before chasing again
+        currentState = EnemyState.Resting;
+        rb.linearVelocity = Vector2.zero;
+        yield return new WaitForSeconds(0.5f);
+
+        // 5. Reset: Allow chasing/hovering again
+        isDiving = false;
+        currentState = EnemyState.Idle;
+
+        // Simple cooldown before next possible attack
+        yield return new WaitForSeconds(2.0f);
+        canAttack = true;
     }
 
     // --- IDamageable INTERFACE ---
