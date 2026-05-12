@@ -7,12 +7,14 @@ public class EnemyAI : MonoBehaviour, IDamageable
     public Transform player;
     public float chaseSpeed = 6f;       // Илүү хурдан хөөх
     public float diveSpeed = 20f;        // Маш хурдтай шумбах
-    public float detectionRange = 12f;
-    public float attackRange = 5f;
-    
+    public float detectionRange = 20f;
+    public float attackRange = 6.5f;
+    public bool canAttack = true;
+
     [Header("Hover Settings")]
     public float hoverHeight = 3f;
     public float hoverForce = 60f;
+    public float horizontalOffset = 4f;
     public LayerMask groundLayer;
 
     private Rigidbody2D rb;
@@ -61,30 +63,61 @@ public class EnemyAI : MonoBehaviour, IDamageable
 
     void ChasePlayer()
     {
-        // Тоглогчийн дээр байрлахыг хичээнэ
-        Vector2 targetPos = new Vector2(player.position.x, player.position.y + 2.5f);
+        // vesperiin zuun tald bgaa eshiig shalgana
+        float side;
+        if (transform.position.x < player.position.x)
+        {
+            side = -1f;
+        }
+        else
+        {
+            side = 1f;
+        }
+        Vector2 targetPos = new Vector2(player.position.x + (side * horizontalOffset), player.position.y + 5f);
         Vector2 dir = (targetPos - (Vector2)transform.position).normalized;
+
         rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, dir * chaseSpeed, Time.deltaTime * 5f);
+
+        // Эсрэг тал руу харуулах
+        if (transform.position.x < player.position.x)
+            transform.localScale = new Vector3(-1, 1, 1); // Баруун тийш харуулах
+        else
+            transform.localScale = new Vector3(1, 1, 1);  // Зүүн тийш харуулах
     }
 
     IEnumerator AggressiveDive()
     {
         isDiving = true;
-        rb.linearVelocity = Vector2.zero;
-
-        // Дайрахын өмнөх цэнэглэлт (Зөвхөн 0.5 секунд хүлээгээд шууд дайрна)
-        yield return new WaitForSeconds(0.5f);
-
-        if (player != null)
+        if (!canAttack)
         {
-            Vector2 diveDir = (player.position - transform.position).normalized;
-            rb.linearVelocity = diveDir * diveSpeed;
+            if (transform.position.x <= player.position.x + (side * horizontalOffset))
+            {
+                canAttack = true;
+            }
         }
-        
-        yield return new WaitForSeconds(0.8f); 
+        else
+        {
+            isDiving = true;
+            rb.linearVelocity = Vector2.zero;
 
-        yield return new WaitForSeconds(1.2f); // Дайрсны дараах амралт
-        isDiving = false;
+            // Дайрахын өмнөх цэнэглэлт (Зөвхөн 0.5 секунд хүлээгээд шууд дайрна)
+            yield return new WaitForSeconds(0.5f);
+
+            if (player != null)
+            {
+                Vector2 diveDir = (player.position - transform.position).normalized;
+                rb.linearVelocity = diveDir * diveSpeed;
+            }
+
+            yield return new WaitForSeconds(0.8f);
+
+            yield return new WaitForSeconds(1.2f); // Дайрсны дараах амралт
+            isDiving = false;
+            canAttack = false;
+        }
+            ;
+
+        
     }
 
     // --- IDamageable INTERFACE ---

@@ -32,6 +32,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isGrounded;
     private Rigidbody2D rb;
     private Collider2D playerCollider;
+    public LayerMask platformLayer;
     private GameObject currentPlatform;
 
     [Header("Input Buffering")]
@@ -58,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (isDashing) return;
         
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer | platformLayer);
 
         if (isGrounded) {
             extraJumps = extraJumpsValue;
@@ -124,7 +125,7 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.S))
         {
             // Check if we are standing on a platform layer
-            RaycastHit2D hit = Physics2D.Raycast(groundCheck.position, Vector2.down, 0.2f, groundLayer);
+            RaycastHit2D hit = Physics2D.Raycast(groundCheck.position, Vector2.down, 0.2f, platformLayer);
             if (hit.collider != null)
             {
                 // If the object we hit is a platform, start the drop routine
