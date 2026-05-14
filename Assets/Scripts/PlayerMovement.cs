@@ -14,7 +14,6 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Movement & Dash")]
     public float speed = 8f;
-    public float jumpForce = 12f;
     public float dashForce = 20f;
     public float dashDuration = 0.2f;
     public bool isDashing, canDash = true, isFacingRight = true;
@@ -24,6 +23,7 @@ public class PlayerMovement : MonoBehaviour
     private int extraJumps;
     private float lastRightTime;
     private float lastLeftTime;
+    public float jumpForce = 12f;
 
     [Header("Detection")]
     public Transform groundCheck;
@@ -34,11 +34,16 @@ public class PlayerMovement : MonoBehaviour
     private Collider2D playerCollider;
     public LayerMask platformLayer;
     private GameObject currentPlatform;
+    private bool isTouchingWall;
 
     [Header("Input Buffering")]
     public float bufferWindow = 0.07f; // 0.12 sekunded hiih uildel sanana
     private float jumpBufferTimer;
 
+    [Header("WallJump")]
+    public float wallJumpForce = 10f;
+    public float wallJumpWindow = 0.5f;
+    private bool isWallJumping = false;
 
     private PlayerCombat combat;
     //togloom ehelehiin omno ajildag function. unity built-in 
@@ -63,6 +68,9 @@ public class PlayerMovement : MonoBehaviour
 
         if (isGrounded) {
             extraJumps = extraJumpsValue;
+        } else if (isTouchingWall)
+        {
+            extraJumps = extraJumpsValue; // wall jump hiisen daraa extra jumps reset hiih
         }
         // jump function iishee oruulsiishuu
         // --- input hadgalah ---
@@ -71,6 +79,14 @@ public class PlayerMovement : MonoBehaviour
         // --- gazar buusan eseh ---
         if (jumpBufferTimer > 0)
         {
+            if(isTouchingWall && !isGrounded)
+            {
+                Walljump();
+                if (!isGrounded && !isTouchingWall) extraJumps--;
+                isWallJumping = true;
+                jumpBufferTimer = 0; // uildel hiisnii daraa buffer arilgana
+            }
+
             if (isGrounded || extraJumps > 0)
             {
                 Jump();
@@ -133,6 +149,24 @@ public class PlayerMovement : MonoBehaviour
             }
         }
     }
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isTouchingWall = true;
+            Debug.Log("Touching the wall!");
+        }
+    }
+
+    // This runs the moment you pull away from the wall
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isTouchingWall = false;
+            Debug.Log("No longer touching the wall.");
+        }
+    }
     IEnumerator Dash() {
         canDash = false; 
         isDashing = true; 
@@ -164,6 +198,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void Jump() => rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+    void Walljump() => rb.linearVelocity = new Vector2(rb.linearVelocity.x, wallJumpForce);
     
     void Flip() { 
         isFacingRight = !isFacingRight; 
